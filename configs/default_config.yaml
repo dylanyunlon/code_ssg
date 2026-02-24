@@ -1,0 +1,32 @@
+# Code-SSG Default Configuration
+
+agent:
+  model: "claude-sonnet-4-5-20250929"
+  max_turns: 100
+  max_context_tokens: 200000
+  context_compression_threshold: 0.92
+
+ssg:
+  mode: "hybrid"  # code_exec, llm_judge, hybrid
+  exec_timeout: 10
+  llm_judge_model: "claude-sonnet-4-5-20250929"
+
+evaluation:
+  benchmarks:
+    - mbpp
+    - mbpp_et
+    - humaneval
+    - humaneval_et
+    - ds1000
+    - codecontests
+  n_trials: 100
+  alpha_levels: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+
+conformal:
+  sampling_budget: 25
+  alpha: 0.1
+
+figures:
+  output_dir: "figures"
+  dpi: 300
+  style: "publication"

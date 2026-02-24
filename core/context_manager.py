@@ -1,177 +1,149 @@
 """
-Context Manager - Manages message history and context compression.
-Inspired by Claude Code's Compressor wU2 that triggers at ~92% context usage.
+Context Manager for the Agentic Loop.
+
+Handles context window management including:
+- Token estimation
+- Context compression (Compressor wU2 pattern from Claude Code)
+- Long-term memory via CLAUDE.md / project memory files
+- Message history compaction
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from enum import Enum
 import json
 import time
+import logging
+from typing import List, Dict, Optional
+from pathlib import Path
 
-
-class MessageRole(Enum):
-    SYSTEM = "system"
-    USER = "user"
-    ASSISTANT = "assistant"
-    TOOL_RESULT = "tool_result"
-    PLAN_UPDATE = "plan_update"
-
-
-@dataclass
-class Message:
-    """A single message in the conversation history."""
-    role: MessageRole
-    content: str
-    timestamp: float = field(default_factory=time.time)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "role": self.role.value,
-            "content": self.content,
-            "metadata": self.metadata,
-        }
-
-    def token_estimate(self) -> int:
-        """Rough token count estimate (4 chars ≈ 1 token)."""
-        return len(self.content) // 4
+logger = logging.getLogger(__name__)
 
 
 class ContextManager:
     """
-    Manages the flat message history for the agentic loop.
-    
-    Design principles (from Claude Code):
-    - Flat message history (no complex threading)
-    - Auto-compression at ~92% context window
-    - Tool results fed back as messages
-    - Plan state injected after tool calls
+    Manages the context window for the agentic loop.
+
+    Implements the Claude Code pattern:
+    - Estimates token usage
+    - Triggers compression at ~92% capacity
+    - Summarizes old messages while preserving recent context
+    - Maintains long-term memory in markdown files
     """
 
-    DEFAULT_MAX_TOKENS = 100000  # ~100K token context
+    CHARS_PER_TOKEN = 4  # Rough estimate
+    COMPRESSION_THRESHOLD = 0.92
+    KEEP_RECENT = 10  # Messages to keep during compression
 
-    def __init__(self, max_tokens: int = DEFAULT_MAX_TOKENS):
+    def __init__(
+        self,
+        max_tokens: int = 200000,
+        memory_file: str = "CLAUDE.md",
+    ):
         self.max_tokens = max_tokens
-        self._messages: List[Message] = []
-        self._system_prompt: Optional[str] = None
-        self._compression_threshold = 0.92
+        self.memory_file = Path(memory_file)
+        self.compressions_count = 0
 
-    def set_system_prompt(self, prompt: str):
-        """Set the system prompt."""
-        self._system_prompt = prompt
+    def estimate_tokens(self, messages: List[Dict]) -> int:
+        """Estimate token count from messages."""
+        total_chars = sum(len(str(m.get("content", ""))) for m in messages)
+        return total_chars // self.CHARS_PER_TOKEN
 
-    def add_message(self, role: MessageRole, content: str, metadata: Optional[Dict] = None):
-        """Add a message to history."""
-        msg = Message(
-            role=role,
-            content=content,
-            metadata=metadata or {},
-        )
-        self._messages.append(msg)
+    def usage_fraction(self, messages: List[Dict]) -> float:
+        """Get current context usage as a fraction (0.0 to 1.0)."""
+        tokens = self.estimate_tokens(messages)
+        return tokens / self.max_tokens
 
-        # Check if compression needed
-        if self._should_compress():
-            self._compress()
+    def needs_compression(self, messages: List[Dict]) -> bool:
+        """Check if context compression is needed."""
+        return self.usage_fraction(messages) > self.COMPRESSION_THRESHOLD
 
-    def add_user_message(self, content: str):
-        self.add_message(MessageRole.USER, content)
-
-    def add_assistant_message(self, content: str):
-        self.add_message(MessageRole.ASSISTANT, content)
-
-    def add_tool_result(self, tool_name: str, result: str):
-        self.add_message(MessageRole.TOOL_RESULT, result, {"tool": tool_name})
-
-    def add_plan_update(self, plan_display: str):
-        self.add_message(MessageRole.PLAN_UPDATE, plan_display)
-
-    def get_messages(self) -> List[Dict[str, Any]]:
-        """Get all messages formatted for LLM API."""
-        messages = []
-        if self._system_prompt:
-            messages.append({"role": "system", "content": self._system_prompt})
-
-        for msg in self._messages:
-            # Map roles to standard API roles
-            if msg.role in (MessageRole.TOOL_RESULT, MessageRole.PLAN_UPDATE):
-                role = "user"
-            else:
-                role = msg.role.value
-            messages.append({"role": role, "content": msg.content})
-
-        return messages
-
-    def get_token_usage(self) -> int:
-        """Estimate current token usage."""
-        total = len(self._system_prompt or "") // 4
-        total += sum(msg.token_estimate() for msg in self._messages)
-        return total
-
-    def get_usage_ratio(self) -> float:
-        """Get ratio of used/max tokens."""
-        return self.get_token_usage() / self.max_tokens
-
-    def _should_compress(self) -> bool:
-        """Check if we're approaching context limit."""
-        return self.get_usage_ratio() >= self._compression_threshold
-
-    def _compress(self):
+    def compress(self, messages: List[Dict]) -> List[Dict]:
         """
-        Compress conversation history.
-        Strategy: Keep system prompt, first message, last N messages,
-        and summarize the middle.
+        Compress messages by summarizing older ones.
+
+        Keeps the most recent messages and summarizes the rest.
+        Returns a new message list with a summary prefix.
         """
-        if len(self._messages) <= 4:
-            return
+        if len(messages) <= self.KEEP_RECENT + 5:
+            return messages
 
-        # Keep first 2 and last 10 messages
-        keep_start = 2
-        keep_end = 10
+        self.compressions_count += 1
+        logger.info(f"Context compression #{self.compressions_count}")
 
-        if len(self._messages) <= keep_start + keep_end:
-            return
+        old = messages[:-self.KEEP_RECENT]
+        recent = messages[-self.KEEP_RECENT:]
 
-        middle = self._messages[keep_start:-keep_end]
+        summary = self._summarize(old)
 
-        # Summarize middle section
-        summary_parts = []
-        tool_calls = 0
-        for msg in middle:
-            if msg.role == MessageRole.TOOL_RESULT:
-                tool_calls += 1
-            elif msg.role == MessageRole.ASSISTANT:
-                # Keep first line of assistant messages
-                first_line = msg.content.split('\n')[0][:200]
-                summary_parts.append(f"- {first_line}")
+        # Save summary to long-term memory
+        self._append_to_memory(summary)
 
-        summary = (
-            f"[Context compressed: {len(middle)} messages summarized]\n"
-            f"[{tool_calls} tool calls were made]\n"
-            f"Key actions:\n" + "\n".join(summary_parts[:10])
+        compressed = [
+            {
+                "role": "system",
+                "content": f"[Context Summary - Compression #{self.compressions_count}]\n{summary}",
+            }
+        ] + recent
+
+        logger.info(
+            f"Compressed {len(messages)} messages → {len(compressed)} "
+            f"(saved ~{self.estimate_tokens(old)} tokens)"
         )
 
-        compressed_msg = Message(
-            role=MessageRole.SYSTEM,
-            content=summary,
-        )
+        return compressed
 
-        self._messages = (
-            self._messages[:keep_start] +
-            [compressed_msg] +
-            self._messages[-keep_end:]
-        )
+    def _summarize(self, messages: List[Dict]) -> str:
+        """Summarize a list of messages."""
+        tool_actions = []
+        key_content = []
+        files_modified = set()
 
-    def get_history_display(self) -> str:
-        """Get a human-readable conversation summary."""
-        total_msgs = len(self._messages)
-        tokens = self.get_token_usage()
-        ratio = self.get_usage_ratio()
-        return (
-            f"Context: {total_msgs} messages, ~{tokens} tokens "
-            f"({ratio*100:.1f}% of {self.max_tokens})"
-        )
+        for m in messages:
+            content = str(m.get("content", ""))
+            role = m.get("role", "")
 
-    def clear(self):
-        """Clear all messages."""
-        self._messages = []
+            if role == "assistant":
+                # Extract key decisions
+                if len(content) > 100:
+                    key_content.append(content[:150] + "...")
+
+            elif role == "tool_result":
+                try:
+                    result = json.loads(content)
+                    if "path" in result:
+                        files_modified.add(result["path"])
+                    if "command" in result:
+                        tool_actions.append(f"Ran: {result['command'][:80]}")
+                    elif "query" in result:
+                        tool_actions.append(f"Searched: {result['query']}")
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        parts = []
+        if tool_actions:
+            parts.append("Actions taken:\n" + "\n".join(f"  - {a}" for a in tool_actions[:15]))
+        if files_modified:
+            parts.append(f"Files modified: {', '.join(files_modified)}")
+        if key_content:
+            parts.append("Key findings:\n" + "\n".join(f"  - {k}" for k in key_content[:8]))
+
+        return "\n\n".join(parts)
+
+    def _append_to_memory(self, summary: str):
+        """Append summary to the long-term memory file."""
+        try:
+            existing = ""
+            if self.memory_file.exists():
+                existing = self.memory_file.read_text()
+
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            new_entry = f"\n\n## Session Summary [{timestamp}]\n\n{summary}"
+
+            self.memory_file.write_text(existing + new_entry)
+            logger.debug(f"Appended to memory file: {self.memory_file}")
+        except Exception as e:
+            logger.warning(f"Could not write to memory file: {e}")
+
+    def load_memory(self) -> Optional[str]:
+        """Load long-term memory from file."""
+        if self.memory_file.exists():
+            return self.memory_file.read_text()
+        return None
