@@ -1,0 +1,42 @@
+{
+    "version": "1.0.0",
+    "project_name": "code_ssg",
+    
+    "verification": {
+        "default_mode": "execution",
+        "timeout_seconds": 10,
+        "auto_verify_edits": true,
+        "auto_verify_tests": true,
+        "auto_revert_on_failure": true
+    },
+    
+    "context": {
+        "max_tokens": 100000,
+        "compression_threshold": 0.92
+    },
+    
+    "tools": {
+        "auto_approve_reads": true,
+        "view_max_lines": 2000,
+        "bash_timeout": 30,
+        "search_max_results": 10,
+        "fetch_max_chars": 10000
+    },
+    
+    "planner": {
+        "max_iterations": 50,
+        "auto_plan_threshold": 3
+    },
+    
+    "ui": {
+        "color_output": true,
+        "show_diffs": true,
+        "show_verification": true,
+        "show_tool_calls": true
+    },
+
+    "llm": {
+        "model": "claude-sonnet-4-20250514",
+        "api_key_env": "ANTHROPIC_API_KEY"
+    }
+}
