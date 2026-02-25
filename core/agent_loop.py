@@ -337,6 +337,10 @@ When done, respond with text only (no tool calls) to end the loop."""
 
             tool_calls = self._extract_tool_calls(response)
             text_content = self._extract_text(response)
+            thinking_content = self._extract_thinking(response)
+
+            if thinking_content:
+                yield self._emit("thinking_content", {"content": thinking_content[:2000]})
 
             if not tool_calls:
                 session.steps.append(AgentStep(id=str(uuid.uuid4()), step_type=StepType.TEXT_RESPONSE, content=text_content, display_title="Response"))
@@ -530,6 +534,23 @@ When done, respond with text only (no tool calls) to end the loop."""
 
     # ==== Response Parsing ====
 
+    def _extract_thinking(self, response: Dict) -> Optional[str]:
+        """
+        Extract thinking blocks from Claude API response.
+        
+        Claude Code's Extended Thinking sends `thinking` content blocks:
+            {"type": "thinking", "thinking": "Let me analyze..."}
+        
+        These are stored in AgentStep for debugging/audit.
+        """
+        thinking_parts = []
+        for block in response.get("content", []):
+            if isinstance(block, dict) and block.get("type") == "thinking":
+                thinking_text = block.get("thinking", "")
+                if thinking_text:
+                    thinking_parts.append(thinking_text)
+        return "\n---\n".join(thinking_parts) if thinking_parts else None
+
     def _extract_tool_calls(self, response: Dict) -> List[ToolCall]:
         tcs = []
         seen = set()
@@ -602,14 +623,65 @@ When done, respond with text only (no tool calls) to end the loop."""
         return (total / 4) / self.max_tokens
 
     def _compress_context(self, messages):
-        logger.info("Compressing context...")
-        if len(messages) <= 10:
+        """
+        Smart context compression (plan 1.1.18).
+        
+        Strategy (improved over naive first+last6):
+          1. Always keep first message (original task/user prompt)
+          2. Keep all messages from last 4 turns (8 messages for user+assistant pairs)
+          3. Summarize middle messages: count tool calls by category, list files changed
+          4. Preserve any messages containing code generation results
+        """
+        logger.info("Compressing context (smart)...")
+        if len(messages) <= 12:
             return messages
+
         first = messages[0]
-        recent = messages[-6:]
-        old = messages[1:-6]
-        tc_count = sum(1 for m in old if isinstance(m.get("content"), list) and any(isinstance(b, dict) and b.get("type") in ("tool_use", "tool_result") for b in m["content"]))
-        summary = f"[Context Summary: {len(old)} messages compressed, ~{tc_count} tool interactions.]"
+        recent_count = min(8, len(messages) - 2)  # last 4 turns ≈ 8 messages
+        recent = messages[-recent_count:]
+        middle = messages[1:-recent_count]
+
+        # Analyze middle messages
+        tc_counts = {"command": 0, "view": 0, "edit": 0, "search": 0, "fetch": 0, "other": 0}
+        files_mentioned = set()
+        errors_found = 0
+        code_blocks = []
+
+        for m in middle:
+            content = m.get("content", "")
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        btype = block.get("type", "")
+                        if btype == "tool_use":
+                            cat = TOOL_CATEGORIES.get(block.get("name", ""), "other")
+                            tc_counts[cat] = tc_counts.get(cat, 0) + 1
+                            # Track file paths
+                            inp = block.get("input", {})
+                            if "path" in inp:
+                                files_mentioned.add(inp["path"])
+                        elif btype == "tool_result":
+                            tc_text = block.get("content", "")
+                            if "error" in tc_text.lower() or "Error" in tc_text:
+                                errors_found += 1
+            elif isinstance(content, str):
+                # Check for code blocks in assistant responses
+                if "```" in content and len(content) > 500:
+                    code_blocks.append(content[:200] + "...")
+
+        # Build summary
+        summary_parts = [f"[Context Compressed: {len(middle)} messages summarized]"]
+        tc_strs = [f"{count} {cat}(s)" for cat, count in tc_counts.items() if count > 0]
+        if tc_strs:
+            summary_parts.append(f"Tool calls: {', '.join(tc_strs)}")
+        if files_mentioned:
+            summary_parts.append(f"Files touched: {', '.join(sorted(files_mentioned)[:15])}")
+        if errors_found:
+            summary_parts.append(f"Errors encountered: {errors_found}")
+        if code_blocks:
+            summary_parts.append(f"Code generations: {len(code_blocks)}")
+
+        summary = "\n".join(summary_parts)
         return [first, {"role": "user", "content": summary}] + recent
 
     def _inject_todo_reminder(self, messages):

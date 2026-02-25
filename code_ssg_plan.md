@@ -43,7 +43,7 @@
 - [×] 1.1.15 **Missing: Extended Thinking support** — Claude Code's `thinking` blocks are not parsed from API responses
   - **Action**: add `_extract_thinking()` method, store `thinking` content in `AgentStep`
   - **File**: `core/agent_loop.py`
-- [×] 1.1.16 **Missing: Permission system** — Claude Code has read/write/execute permission gates
+- [√] 1.1.16 **Missing: Permission system** — Claude Code has read/write/execute permission gates
   - **Action**: add `PermissionManager` class with `auto_approve_reads=True` behavior
   - **File**: NEW `core/permissions.py`
 - [×] 1.1.17 **Missing: Abort/undo mechanism** — Claude Code supports reverting last N tool calls
@@ -63,9 +63,6 @@
 - [√] 1.2.3 System prompt injection
 - [×] 1.2.4 **Missing: Streaming support** — `chat_sync()` exists but no `chat_stream()`
   - **Action**: add `chat_stream()` async generator yielding `ContentBlockDelta` events
-  - **File**: `core/claude_client.py`
-- [×] 1.2.5 **Missing: Extended Thinking parameter** — Claude Code sends `thinking` configuration
-  - **Action**: add `thinking={"type": "enabled", "budget_tokens": ...}` parameter support
   - **File**: `core/claude_client.py`
 - [×] 1.2.6 **Missing: Retry with exponential backoff** — Claude Code retries on 529/overloaded
   - **Action**: implement retry logic with 1s/2s/4s backoff for 429/529 status codes
@@ -134,7 +131,7 @@
 - [√] 2.4 `tools/search_tool.py` — SearchTool (grep with regex)
 - [√] 2.5 `tools/glob_tool.py` — GlobTool (file pattern matching)
 - [√] 2.6 `tools/base_tool.py` — BaseTool abstract class
-- [×] 2.7 **Missing: FetchTool in tools/** — `FetchTool` is imported in `main.py` but not in `tools/__init__.py`
+- [√] 2.7 **Missing: FetchTool in tools/** — `FetchTool` is imported in `main.py` but not in `tools/__init__.py`
   - **Action**: create `tools/fetch_tool.py`, update `tools/__init__.py`
   - **File**: NEW `tools/fetch_tool.py`, EDIT `tools/__init__.py`
 - [×] 2.8 **Missing: WebSearchTool in tools/** — only a stub returning empty results

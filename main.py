@@ -21,7 +21,8 @@ from core.tool_engine import ToolEngine
 from core.context_manager import ContextManager
 from core.message_queue import MessageQueue
 from core.planner import Planner
-from tools import ViewTool, MultiViewTool, EditTool, BashTool, SearchTool, FetchTool, GlobTool
+from tools import ViewTool, MultiViewTool, EditTool, BashTool, SearchTool, GlobTool
+from tools.fetch_tool import FetchTool, WebSearchTool
 from verification.verifier import VerificationMode, create_verifier
 from ui.cli import (
     print_header, print_tool_call, print_state_change,
@@ -40,6 +41,7 @@ def setup_tool_engine(working_dir: str = None) -> ToolEngine:
         BashTool(default_cwd=working_dir or os.getcwd()),
         SearchTool(),
         FetchTool(),
+        WebSearchTool(),
         GlobTool(),
     ])
 
