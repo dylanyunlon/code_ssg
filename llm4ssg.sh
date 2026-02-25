@@ -562,6 +562,48 @@ FIGURES_DIR = os.environ.get("FIGURES_DIR", os.path.join(PROJECT_DIR, "figures",
 CACHE_DIR = os.environ.get("CACHE_DIR", ".cache/llm_ssg")
 
 # ==================================================================
+# REFERENCE SCORES — Seed 2.0 Model Card Table 3 (Large Models)
+# Source: https://seed.bytedance.com/zh/seed2 (Feb 2026)
+#
+# These are CITED from the original paper, NOT our measurements.
+# Used for "Baseline LLM" rows in comparison tables.
+#
+# Format: benchmark → {model → score}
+# Score semantics match Seed 2.0 Table 3 original units:
+#   AIME/HMMT: accuracy %, Codeforces: Elo rating, others: accuracy %
+# ==================================================================
+SEED2_TABLE3_SCORES = {
+    # Math
+    "aime_2025":    {"GPT-5.2 High": 99.0, "Claude-Sonnet-4.5": 87.0, "Claude-Opus-4.5": 91.3, "Gemini-3-Pro High": 95.0, "Seed2.0 Pro": 98.3},
+    "hmmt_2025":    {"GPT-5.2 High": 100.0, "Claude-Sonnet-4.5": 79.2, "Claude-Opus-4.5": 92.9, "Gemini-3-Pro High": 97.3, "Seed2.0 Pro": 97.3},
+    "beyondaime":   {"GPT-5.2 High": 86.0, "Claude-Sonnet-4.5": 57.0, "Claude-Opus-4.5": 69.0, "Gemini-3-Pro High": 83.0, "Seed2.0 Pro": 86.5},
+    "mathapex":     {"GPT-5.2 High": 80.1, "Claude-Sonnet-4.5": 26.0, "Claude-Opus-4.5": 47.4, "Gemini-3-Pro High": 71.4, "Seed2.0 Pro": 82.1},
+    # Science
+    "gpqa_diamond": {"GPT-5.2 High": 92.4, "Claude-Sonnet-4.5": 84.3, "Claude-Opus-4.5": 86.9, "Gemini-3-Pro High": 91.9, "Seed2.0 Pro": 88.9},
+    "superchem":    {"GPT-5.2 High": 58.0, "Claude-Sonnet-4.5": 32.4, "Claude-Opus-4.5": 43.2, "Gemini-3-Pro High": 63.2, "Seed2.0 Pro": 51.6},
+    "babe_bio":     {"GPT-5.2 High": 58.1, "Claude-Sonnet-4.5": 44.7, "Claude-Opus-4.5": 49.3, "Gemini-3-Pro High": 51.3, "Seed2.0 Pro": 50.0},
+    "phybench":     {"GPT-5.2 High": 74.0, "Claude-Sonnet-4.5": 48.0, "Claude-Opus-4.5": 69.0, "Gemini-3-Pro High": 80.0, "Seed2.0 Pro": 74.0},
+    "frontiersci":  {"GPT-5.2 High": 25.0, "Claude-Sonnet-4.5": 16.7, "Claude-Opus-4.5": 21.7, "Gemini-3-Pro High": 15.0, "Seed2.0 Pro": 25.0},
+    "encyclo_k":    {"GPT-5.2 High": 61.0, "Claude-Sonnet-4.5": 58.0, "Claude-Opus-4.5": 63.3, "Gemini-3-Pro High": 64.9, "Seed2.0 Pro": 65.7},
+    "lpfqa":        {"GPT-5.2 High": 54.4, "Claude-Sonnet-4.5": 54.9, "Claude-Opus-4.5": 52.6, "Gemini-3-Pro High": 51.2, "Seed2.0 Pro": 52.6},
+    # Code (Codeforces is Elo, others are %)
+    "codeforces":   {"GPT-5.2 High": 3148, "Claude-Sonnet-4.5": 1485, "Claude-Opus-4.5": 1701, "Gemini-3-Pro High": 2726, "Seed2.0 Pro": 3020},
+    "aethercode":   {"GPT-5.2 High": 73.8, "Claude-Sonnet-4.5": 16.4, "Claude-Opus-4.5": 31.6, "Gemini-3-Pro High": 57.8, "Seed2.0 Pro": 60.6},
+    "livecodebnech_v6": {"GPT-5.2 High": 87.7, "Claude-Sonnet-4.5": 64.0, "Claude-Opus-4.5": 84.8, "Gemini-3-Pro High": 90.7, "Seed2.0 Pro": 87.8},
+    # STEM
+    "mmlu_pro":     {"GPT-5.2 High": 85.9, "Claude-Sonnet-4.5": 88.0, "Claude-Opus-4.5": 89.3, "Gemini-3-Pro High": 90.1, "Seed2.0 Pro": 87.0},
+    "korbench":     {"GPT-5.2 High": 79.2, "Claude-Sonnet-4.5": 73.0, "Claude-Opus-4.5": 77.4, "Gemini-3-Pro High": 73.9, "Seed2.0 Pro": 77.5},
+    # Instruction Following
+    "multichallenge": {"GPT-5.2 High": 59.5, "Claude-Sonnet-4.5": 57.3, "Claude-Opus-4.5": 59.0, "Gemini-3-Pro High": 68.7, "Seed2.0 Pro": 68.3},
+    "collie":       {"GPT-5.2 High": 96.9, "Claude-Sonnet-4.5": 77.3, "Claude-Opus-4.5": 79.8, "Gemini-3-Pro High": 95.0, "Seed2.0 Pro": 93.9},
+    "mars_bench":   {"GPT-5.2 High": 87.9, "Claude-Sonnet-4.5": 72.9, "Claude-Opus-4.5": 87.7, "Gemini-3-Pro High": 85.6, "Seed2.0 Pro": 85.6},
+    "inverse_ifeval": {"GPT-5.2 High": 72.3, "Claude-Sonnet-4.5": 69.3, "Claude-Opus-4.5": 72.4, "Gemini-3-Pro High": 79.6, "Seed2.0 Pro": 78.9},
+}
+
+# Reference models list (in Table 3 column order)
+REFERENCE_MODELS = ["GPT-5.2 High", "Claude-Sonnet-4.5", "Claude-Opus-4.5", "Gemini-3-Pro High", "Seed2.0 Pro"]
+
+# ==================================================================
 # API Client — matches core/claude_client.py ClaudeClient pattern
 # httpx + Bearer auth + proxy endpoint, NOT official Anthropic SDK
 # Same as skynetCheapBuy/app/core/ai_engine.py ClaudeCompatibleProvider
@@ -1397,6 +1439,7 @@ class SSGExperimentRunner:
         """Run SSG validation on a single task with explicit client instances (thread-safe)."""
         prompt = task["prompt"]
         reference = task.get("reference", "")
+        task_start_time = time.time()
 
         # Step 1: Generate response via LLM
         if task_type in ("code_generation", "competitive_programming"):
@@ -1468,6 +1511,7 @@ class SSGExperimentRunner:
             "ssg_validated": ssg_result.get("validated", 0),
             "ssg_passed": ssg_result.get("passed", 0),
             "correct": correct,
+            "runtime_seconds": time.time() - task_start_time,
         }
 
     def _run_single_task(self, task: Dict, task_type: str, seed: int) -> Dict:
@@ -1655,6 +1699,53 @@ class SSGExperimentRunner:
             "api_usage": self.generator.get_usage_stats(),
             "trial_summaries": [t["metrics"] for t in trial_results],
         }
+
+        # === Timing statistics (per-task runtime, like EG-CFG Table 5) ===
+        all_task_results_flat = []
+        for trial in trial_results:
+            all_task_results_flat.extend(trial.get("task_results", []))
+        runtimes = [r.get("runtime_seconds", 0) for r in all_task_results_flat
+                    if r.get("runtime_seconds", 0) > 0]
+        if runtimes:
+            result["runtime_stats"] = {
+                "mean_seconds": float(np.mean(runtimes)),
+                "std_seconds": float(np.std(runtimes)),
+                "median_seconds": float(np.median(runtimes)),
+                "min_seconds": float(np.min(runtimes)),
+                "max_seconds": float(np.max(runtimes)),
+                "n_tasks_timed": len(runtimes),
+            }
+
+        # === Reference scores from Seed 2.0 Table 3 ===
+        if benchmark_name in SEED2_TABLE3_SCORES:
+            result["reference_scores"] = SEED2_TABLE3_SCORES[benchmark_name]
+
+        # === Selective Risk & RSR (like EG-CFG) ===
+        # Selective Risk: error rate among non-abstained tasks
+        acc_mean = result["metrics"]["accuracy_mean"]
+        ssg_mean = result["metrics"]["ssg_pass_rate_mean"]
+        abstention_proxy = 1.0 - ssg_mean
+        if ssg_mean > 0:
+            # Risk = (1 - accuracy_among_covered) — lower is better
+            result["metrics"]["selective_risk"] = round(
+                max(0, 1.0 - acc_mean / max(ssg_mean, 0.01)), 4)
+        else:
+            result["metrics"]["selective_risk"] = 1.0
+
+        # RSR: Relative Success Rate — improvement over baseline
+        # RSR = (SSG_acc - baseline_acc) / (1 - baseline_acc) × 100
+        # Where baseline = Baseline LLM (no SSG)
+        # In our case, baseline_acc ≈ accuracy when SSG always accepts
+        # We use accuracy from reference if available
+        if benchmark_name in SEED2_TABLE3_SCORES:
+            # Use Claude-Opus-4.5 as our baseline (same model family)
+            our_baseline = SEED2_TABLE3_SCORES[benchmark_name].get(
+                "Claude-Opus-4.5", acc_mean * 100) / 100.0
+            if our_baseline < 1.0:
+                result["metrics"]["rsr"] = round(
+                    (acc_mean - our_baseline) / (1.0 - our_baseline) * 100, 2)
+            else:
+                result["metrics"]["rsr"] = 0.0
 
         return result
 
@@ -1917,7 +2008,7 @@ class SSGFigureGenerator:
         self.figures_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_all(self, results: Dict[str, Dict]):
-        """Generate all multi-angle figures from experiment results."""
+        """Generate all multi-angle figures AND comparison tables from experiment results."""
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
@@ -1939,7 +2030,272 @@ class SSGFigureGenerator:
         # ── Figure 4: Per-benchmark accuracy bar chart ──
         self._plot_accuracy_bars(results, "accuracy_by_benchmark.png")
 
-        logger.info(f"All figures saved to {self.figures_dir}")
+        # ══════════════════════════════════════════════════════════════
+        # TABLES — like EG-CFG Tables 1, 3, 5 (with reference scores)
+        # ══════════════════════════════════════════════════════════════
+
+        # ── Table 1: Main comparison (Acc + SSG Coverage + RSR) ──
+        # Like EG-CFG Table 1: Model × Method → Acc / RSR per benchmark
+        self._generate_table_main_comparison(results)
+
+        # ── Table 2: Multi-angle SSG metrics per benchmark ──
+        # Coverage, Selective Risk, Abstention Rate, domain-specific
+        self._generate_table_multi_metric(results)
+
+        # ── Table 3: Per-task runtime statistics ──
+        # Like EG-CFG Table 5: Mean ± SD (seconds)
+        self._generate_table_runtime(results)
+
+        logger.info(f"All figures and tables saved to {self.figures_dir}")
+
+    # ==================================================================
+    # TABLE GENERATORS — LaTeX + text format (like EG-CFG paper)
+    # ==================================================================
+
+    def _generate_table_main_comparison(self, results: Dict[str, Dict]):
+        """
+        Table 1: Performance comparison with reference Baseline LLM scores.
+        
+        Like EG-CFG Table 1:
+          Model              Method          AIME 2025        GPQA Diamond     ...
+                                             Acc(%) RSR(%)    Acc(%) RSR(%)
+          ──────────────────────────────────────────────────────────────────
+          GPT-5.2 High       Baseline LLM    99.0   --        92.4   --
+          Claude-Opus-4.5    Baseline LLM    91.3   --        86.9   --
+          Gemini-3-Pro High  Baseline LLM    95.0   --        91.9   --
+          Seed2.0 Pro        Baseline LLM    98.3   --        88.9   --
+          ══════════════════════════════════════════════════════════════════
+          Claude-Opus (Ours) SSG (hybrid)    XX.X   XX.X      XX.X   XX.X
+          Claude-Opus (Ours) SSG (code_exec) XX.X   XX.X      ...
+        
+        Scores below the double separator are from our SSG experiments.
+        Scores above are cited from Seed 2.0 Model Card Table 3.
+        """
+        from pathlib import Path
+
+        benchmarks = list(results.keys())
+        if not benchmarks:
+            return
+
+        lines = []
+        lines.append("=" * 120)
+        lines.append("Table 1: SSG Performance vs Baseline LLMs on Seed 2.0 Benchmarks")
+        lines.append("Scores above ══ are cited from Seed 2.0 Model Card Table 3 [1].")
+        lines.append("SSG results (below ══) are from our experiments using real API calls.")
+        lines.append("RSR = (Acc_method - Acc_baseline) / (1 - Acc_baseline) × 100")
+        lines.append("=" * 120)
+
+        # Header
+        bm_headers = []
+        for bm in benchmarks:
+            bm_short = bm.replace("_", " ").title()[:12]
+            bm_headers.append(f"{'Acc(%)':>8} {'RSR(%)':>8}")
+        header_bm_names = "  ".join(f"{bm.replace('_',' ').title()[:15]:>17}" for bm in benchmarks)
+        header_cols = "  ".join(f"{'Acc(%)':>8} {'RSR(%)':>8}" for _ in benchmarks)
+        lines.append(f"{'Model':<22} {'Method':<18} {header_bm_names}")
+        lines.append(f"{'':22} {'':18} {header_cols}")
+        lines.append("-" * 120)
+
+        # Reference scores (from Seed 2.0 Table 3)
+        for ref_model in REFERENCE_MODELS:
+            row_parts = []
+            for bm in benchmarks:
+                ref_scores = SEED2_TABLE3_SCORES.get(bm, {})
+                score = ref_scores.get(ref_model, None)
+                if score is not None:
+                    row_parts.append(f"{score:>8.1f} {'--':>8}")
+                else:
+                    row_parts.append(f"{'--':>8} {'--':>8}")
+            lines.append(f"{ref_model:<22} {'Baseline LLM':<18} {'  '.join(row_parts)}")
+
+        # Double separator (like EG-CFG)
+        lines.append("═" * 120)
+
+        # Our SSG results
+        our_model = results[benchmarks[0]].get("model", "claude-opus-4-6")
+        our_mode = results[benchmarks[0]].get("ssg_mode", "hybrid")
+        row_parts = []
+        for bm in benchmarks:
+            bm_data = results[bm]
+            acc = bm_data["metrics"]["accuracy_mean"] * 100
+            rsr = bm_data["metrics"].get("rsr", 0)
+            row_parts.append(f"{acc:>8.1f} {rsr:>8.2f}")
+        lines.append(f"{our_model:<22} {'SSG (' + our_mode + ')':<18} {'  '.join(row_parts)}")
+
+        lines.append("=" * 120)
+        lines.append("")
+
+        # Save
+        table_path = Path(self.figures_dir) / "table1_main_comparison.txt"
+        with open(table_path, "w") as f:
+            f.write("\n".join(lines))
+        logger.info(f"Saved Table 1: {table_path}")
+
+        # Also generate LaTeX version
+        self._write_latex_table1(results, benchmarks)
+
+    def _write_latex_table1(self, results: Dict[str, Dict], benchmarks: List[str]):
+        """Generate LaTeX version of Table 1 for paper inclusion."""
+        from pathlib import Path
+
+        n_bm = len(benchmarks)
+        col_spec = "ll" + "cc" * n_bm
+
+        lines = []
+        lines.append("% Auto-generated by LLM4SSG — do NOT edit by hand")
+        lines.append(f"% Generated: {datetime.now().isoformat()}")
+        lines.append("\\begin{table}[t]")
+        lines.append("\\centering")
+        lines.append("\\caption{Performance comparison on Seed 2.0 benchmarks. "
+                     "Scores above the double line are cited from the Seed 2.0 Model Card~\\cite{seed2}. "
+                     "SSG results (below) are from our experiments. "
+                     "RSR = Relative Success Rate.}")
+        lines.append(f"\\label{{tab:main_comparison}}")
+        lines.append("\\resizebox{\\textwidth}{!}{")
+        lines.append(f"\\begin{{tabular}}{{{col_spec}}}")
+        lines.append("\\toprule")
+
+        # Multi-column headers
+        bm_headers = " & ".join(
+            f"\\multicolumn{{2}}{{c}}{{{bm.replace('_', ' ').title()}}}"
+            for bm in benchmarks)
+        lines.append(f"Model & Method & {bm_headers} \\\\")
+        sub_headers = " & ".join("Acc(\\%) & RSR(\\%)" for _ in benchmarks)
+        lines.append(f" & & {sub_headers} \\\\")
+        lines.append("\\midrule")
+
+        # Reference rows
+        for ref_model in REFERENCE_MODELS:
+            cells = []
+            for bm in benchmarks:
+                score = SEED2_TABLE3_SCORES.get(bm, {}).get(ref_model, None)
+                if score is not None:
+                    cells.append(f"{score:.1f} & --")
+                else:
+                    cells.append("-- & --")
+            lines.append(f"{ref_model} & Baseline LLM & {' & '.join(cells)} \\\\")
+
+        lines.append("\\midrule\\midrule")
+
+        # Our results
+        our_model = results[benchmarks[0]].get("model", "claude-opus-4-6")
+        our_mode = results[benchmarks[0]].get("ssg_mode", "hybrid")
+        cells = []
+        for bm in benchmarks:
+            acc = results[bm]["metrics"]["accuracy_mean"] * 100
+            rsr = results[bm]["metrics"].get("rsr", 0)
+            cells.append(f"\\textbf{{{acc:.1f}}} & {rsr:.2f}")
+        lines.append(f"{our_model} & SSG ({our_mode}) & {' & '.join(cells)} \\\\")
+
+        lines.append("\\bottomrule")
+        lines.append("\\end{tabular}}")
+        lines.append("\\end{table}")
+
+        latex_path = Path(self.figures_dir) / "table1_main_comparison.tex"
+        with open(latex_path, "w") as f:
+            f.write("\n".join(lines))
+        logger.info(f"Saved Table 1 LaTeX: {latex_path}")
+
+    def _generate_table_multi_metric(self, results: Dict[str, Dict]):
+        """
+        Table 2: Multi-angle SSG metrics per benchmark at α=0.10.
+
+        Benchmark       Coverage  Abstention  Selective   SSG Pass    Domain-Specific
+                        (%)       Rate (%)    Risk (↓)    Rate (%)    Metrics...
+        ─────────────────────────────────────────────────────────────────────────
+        AIME 2025       XX.X±X.X  XX.X±X.X   0.XXX       XX.X±X.X   exact_match=...
+        GPQA Diamond    XX.X±X.X  ...
+        """
+        from pathlib import Path
+
+        lines = []
+        lines.append("=" * 130)
+        lines.append("Table 2: Multi-Angle SSG Metrics per Benchmark (α=0.10)")
+        lines.append("Coverage = fraction of tasks with SSG confidence ≥ threshold")
+        lines.append("Selective Risk = error rate among non-abstained tasks (lower is better)")
+        lines.append("=" * 130)
+        lines.append(
+            f"{'Benchmark':<20} {'Category':<10} {'Accuracy':>12} "
+            f"{'Coverage':>12} {'Abstention':>12} {'Sel.Risk↓':>10} "
+            f"{'SSG Rate':>12} {'Domain Metric 1':>18} {'Domain Metric 2':>18}")
+        lines.append("-" * 130)
+
+        for bm_name, bm_data in results.items():
+            m = bm_data["metrics"]
+            cat = bm_data.get("category", "?")
+
+            # Find alpha=0.10 entry
+            ar = bm_data.get("alpha_results", [])
+            ar_010 = next((a for a in ar if abs(a["alpha"] - 0.10) < 0.01), ar[0] if ar else {})
+
+            acc_str = f"{m['accuracy_mean']*100:.1f}±{m['accuracy_std']*100:.1f}"
+            cov_str = f"{ar_010.get('coverage_mean', 0)*100:.1f}±{ar_010.get('coverage_std', 0)*100:.1f}"
+            abs_str = f"{ar_010.get('abstention_rate_mean', 0)*100:.1f}±{ar_010.get('abstention_rate_std', 0)*100:.1f}"
+            sr_str = f"{m.get('selective_risk', 0):.4f}"
+            ssg_str = f"{m['ssg_pass_rate_mean']*100:.1f}±{m['ssg_pass_rate_std']*100:.1f}"
+
+            # Domain-specific metrics at alpha=0.10
+            metric_keys = bm_data.get("metric_keys", [])
+            domain_keys = [k for k in metric_keys if k not in ("coverage", "abstention_rate")]
+            dm1 = dm2 = ""
+            if len(domain_keys) >= 1:
+                k = domain_keys[0]
+                dm1 = f"{k}={ar_010.get(f'{k}_mean', 0)*100:.1f}"
+            if len(domain_keys) >= 2:
+                k = domain_keys[1]
+                dm2 = f"{k}={ar_010.get(f'{k}_mean', 0)*100:.1f}"
+
+            lines.append(
+                f"{bm_name:<20} {cat:<10} {acc_str:>12} "
+                f"{cov_str:>12} {abs_str:>12} {sr_str:>10} "
+                f"{ssg_str:>12} {dm1:>18} {dm2:>18}")
+
+        lines.append("=" * 130)
+
+        table_path = Path(self.figures_dir) / "table2_multi_metric.txt"
+        with open(table_path, "w") as f:
+            f.write("\n".join(lines))
+        logger.info(f"Saved Table 2: {table_path}")
+
+    def _generate_table_runtime(self, results: Dict[str, Dict]):
+        """
+        Table 3: Per-task runtime statistics (like EG-CFG Table 5).
+
+        Benchmark       Model              Method       Mean ± SD (s)    Median (s)   Min–Max (s)
+        ─────────────────────────────────────────────────────────────────────────────────────
+        AIME 2025       claude-opus-4-6    SSG hybrid   XX.XX ± XX.XX    XX.XX       X.X–XX.X
+        """
+        from pathlib import Path
+
+        lines = []
+        lines.append("=" * 100)
+        lines.append("Table 3: Per-Task Runtime Statistics (seconds)")
+        lines.append("Includes LLM generation + SSG validation time per task.")
+        lines.append("=" * 100)
+        lines.append(
+            f"{'Benchmark':<22} {'Model':<20} {'Method':<14} "
+            f"{'Mean ± SD (s)':>18} {'Median (s)':>12} {'Min–Max (s)':>16}")
+        lines.append("-" * 100)
+
+        for bm_name, bm_data in results.items():
+            rt = bm_data.get("runtime_stats", {})
+            if not rt:
+                continue
+            model = bm_data.get("model", "?")
+            mode = bm_data.get("ssg_mode", "?")
+            mean_sd = f"{rt['mean_seconds']:.2f} ± {rt['std_seconds']:.2f}"
+            median = f"{rt['median_seconds']:.2f}"
+            minmax = f"{rt['min_seconds']:.1f}–{rt['max_seconds']:.1f}"
+            lines.append(
+                f"{bm_name:<22} {model:<20} {'SSG ' + mode:<14} "
+                f"{mean_sd:>18} {median:>12} {minmax:>16}")
+
+        lines.append("=" * 100)
+
+        table_path = Path(self.figures_dir) / "table3_runtime.txt"
+        with open(table_path, "w") as f:
+            f.write("\n".join(lines))
+        logger.info(f"Saved Table 3: {table_path}")
 
     def _plot_multi_angle_panels(self, results: Dict[str, Dict]):
         """
