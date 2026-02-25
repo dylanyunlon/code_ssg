@@ -1,264 +1,227 @@
 """
-Claude API Client - Real Anthropic SDK Integration
-====================================================
-Provides the actual LLM backend for the agentic loop.
-Replaces the placeholder _call_model() in agent_loop.py.
+Claude API Client - httpx-based (matches skynetCheapBuy pattern)
+=================================================================
+Uses httpx to call /v1/messages endpoint directly, NOT the anthropic SDK.
+This matches how skynetCheapBuy/app/core/ai_engine.py ClaudeCompatibleProvider works.
 
-Reference: skynetCheapBuy/app/core/ai_engine.py
+Loads API config from .env file via env_loader.
 
-Location: core/claude_client.py (NEW FILE)
+Key difference from previous version:
+  - Uses httpx.AsyncClient instead of anthropic.Anthropic
+  - Calls /v1/messages endpoint with Bearer token
+  - Parses raw JSON response (not SDK objects)
+
+Location: core/claude_client.py (REWRITTEN)
 """
+
 import json
 import time
+import asyncio
 import logging
 import os
+import uuid
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# Model pricing ($ per 1M tokens)
+MODEL_PRICING = {
+    "claude-opus-4-6":            {"input": 15.0,  "output": 75.0},
+    "claude-opus-4-5-20251101":   {"input": 15.0,  "output": 75.0},
+    "claude-sonnet-4-5-20250929": {"input": 3.0,   "output": 15.0},
+    "claude-haiku-4-5-20251001":  {"input": 0.80,  "output": 4.0},
+    "_default":                   {"input": 3.0,   "output": 15.0},
+}
+
 
 class ClaudeClient:
     """
-    Real Claude API client using the Anthropic Python SDK.
-    
-    Supports:
-    - Tool calling (function calling with tool_use blocks)
-    - Streaming responses (SSE)
-    - Content block parsing (text + tool_use)
-    - Automatic retry with exponential backoff
-    - Token usage tracking
+    Real Claude API client using httpx (NOT anthropic SDK).
+    Matches skynetCheapBuy/app/core/ai_engine.py ClaudeCompatibleProvider pattern.
     
     Usage:
-        client = ClaudeClient(api_key="sk-ant-...")
+        client = ClaudeClient()  # reads from .env
         response = await client.chat(messages, tools=tool_defs)
     """
 
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-sonnet-4-20250514",
+        api_base: Optional[str] = None,
+        model: str = None,
         max_tokens: int = 8192,
-        base_url: Optional[str] = None,
     ):
-        self.model = model
+        self._api_key = api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY", "")
+        
+        # Base URL handling - same as skynetCheapBuy
+        raw_base = api_base or os.environ.get("OPENAI_API_BASE") or os.environ.get("ANTHROPIC_API_BASE", "https://api.tryallai.com/v1")
+        if raw_base.endswith("/v1"):
+            raw_base = raw_base[:-3]
+        elif raw_base.endswith("/v1/"):
+            raw_base = raw_base[:-4]
+        self._api_base = raw_base
+        self._messages_endpoint = f"{self._api_base}/v1/messages"
+        
+        self.model = model or os.environ.get("DEFAULT_MODEL", "claude-sonnet-4-5-20250929")
         self.max_tokens = max_tokens
-        self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        self._base_url = base_url or os.environ.get("ANTHROPIC_API_BASE")
-        self._client = None
+        
+        # Token tracking
         self._total_input_tokens = 0
         self._total_output_tokens = 0
-
-    def _get_client(self):
-        """Lazy-initialize the Anthropic client."""
-        if self._client is None:
-            try:
-                import anthropic
-            except ImportError:
-                raise ImportError(
-                    "anthropic package required. Install with: pip install anthropic"
-                )
-            kwargs = {"api_key": self._api_key}
-            if self._base_url:
-                kwargs["base_url"] = self._base_url
-            self._client = anthropic.Anthropic(**kwargs)
-        return self._client
-
+        self._total_cost = 0.0
+    
     async def chat(
         self,
         messages: List[Dict[str, Any]],
         tools: Optional[List[Dict]] = None,
         system_prompt: Optional[str] = None,
         temperature: float = 0.1,
+        model: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Call Claude API with tool support.
-        
-        Args:
-            messages: Conversation history in Claude format
-            tools: Tool definitions (converted to Anthropic format)
-            system_prompt: System prompt
-            temperature: Sampling temperature
+        Call Claude API with tool support via httpx.
         
         Returns dict with:
             - content: list of content blocks [{type: "text"/"tool_use", ...}]
+            - text: concatenated text content
+            - tool_calls: extracted tool calls [{name, id, arguments}]
             - stop_reason: "end_turn" | "tool_use"
             - usage: {input_tokens, output_tokens}
         """
-        import asyncio
-
-        client = self._get_client()
-
-        # Clean messages for API (must alternate user/assistant properly)
-        clean_messages = self._clean_messages(messages)
-
-        kwargs = {
-            "model": self.model,
+        import httpx
+        
+        used_model = model or self.model
+        
+        # Separate system messages from conversation
+        system_content = system_prompt
+        claude_messages = []
+        for msg in messages:
+            if msg["role"] == "system":
+                if system_content:
+                    system_content = system_content + "\n\n" + msg["content"]
+                else:
+                    system_content = msg["content"]
+            elif isinstance(msg.get("content"), list):
+                claude_messages.append({"role": msg["role"], "content": msg["content"]})
+            else:
+                claude_messages.append({"role": msg["role"], "content": msg["content"]})
+        
+        # Build request body (native Claude format, same as skynetCheapBuy)
+        request_body = {
+            "model": used_model,
+            "messages": claude_messages,
             "max_tokens": self.max_tokens,
-            "messages": clean_messages,
             "temperature": temperature,
         }
-        if system_prompt:
-            kwargs["system"] = system_prompt
+        
+        if system_content:
+            request_body["system"] = system_content
         if tools:
-            kwargs["tools"] = self._format_tools_for_api(tools)
-
-        # Run synchronous SDK call in executor (SDK is sync)
-        loop = asyncio.get_event_loop()
+            request_body["tools"] = self._format_tools(tools)
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self._api_key}",
+            "anthropic-version": "2023-06-01",
+        }
+        
+        timeout = 180.0 if tools else 60.0
+        
+        logger.info(f"Calling Claude Messages API: model={used_model}, endpoint={self._messages_endpoint}, tools={bool(tools)}")
+        
         max_retries = 3
+        last_error = None
         for attempt in range(max_retries):
             try:
-                response = await loop.run_in_executor(
-                    None, lambda: client.messages.create(**kwargs)
-                )
-                break
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.post(
+                        self._messages_endpoint,
+                        json=request_body,
+                        headers=headers,
+                    )
+                    
+                    if response.status_code != 200:
+                        error_text = response.text
+                        logger.error(f"Claude API error: {response.status_code} - {error_text}")
+                        raise Exception(f"Claude API error: {response.status_code} - {error_text}")
+                    
+                    data = response.json()
+                    parsed = self._parse_response(data)
+                    
+                    usage = parsed.get("usage", {})
+                    self._total_input_tokens += usage.get("input_tokens", 0)
+                    self._total_output_tokens += usage.get("output_tokens", 0)
+                    self._total_cost += self._estimate_cost(
+                        used_model, usage.get("input_tokens", 0), usage.get("output_tokens", 0)
+                    )
+                    
+                    return parsed
+                    
             except Exception as e:
-                if attempt < max_retries - 1 and "overloaded" in str(e).lower():
+                last_error = e
+                if attempt < max_retries - 1 and ("overloaded" in str(e).lower() or "timeout" in str(e).lower()):
                     wait = 2 ** attempt
-                    logger.warning(f"API overloaded, retrying in {wait}s...")
+                    logger.warning(f"API error (attempt {attempt+1}), retrying in {wait}s: {e}")
                     await asyncio.sleep(wait)
                 else:
-                    logger.error(f"Claude API error: {e}")
                     raise
-
-        parsed = self._parse_response(response)
-
-        # Track token usage
-        usage = parsed.get("usage", {})
-        self._total_input_tokens += usage.get("input_tokens", 0)
-        self._total_output_tokens += usage.get("output_tokens", 0)
-
-        return parsed
-
-    def chat_sync(
-        self,
-        messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict]] = None,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.1,
-    ) -> Dict[str, Any]:
-        """Synchronous version of chat() for non-async contexts."""
-        client = self._get_client()
-        clean_messages = self._clean_messages(messages)
-
-        kwargs = {
-            "model": self.model,
-            "max_tokens": self.max_tokens,
-            "messages": clean_messages,
-            "temperature": temperature,
-        }
-        if system_prompt:
-            kwargs["system"] = system_prompt
-        if tools:
-            kwargs["tools"] = self._format_tools_for_api(tools)
-
-        response = client.messages.create(**kwargs)
-        parsed = self._parse_response(response)
-
-        usage = parsed.get("usage", {})
-        self._total_input_tokens += usage.get("input_tokens", 0)
-        self._total_output_tokens += usage.get("output_tokens", 0)
-
-        return parsed
-
-    def _clean_messages(self, messages: List[Dict]) -> List[Dict]:
-        """
-        Clean messages for the Claude API.
-        Converts tool_result messages and ensures proper alternation.
-        """
-        cleaned = []
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            # Map tool_result → user role with proper format
-            if role == "tool_result":
-                if isinstance(content, str):
-                    # Already formatted as tool_result content
-                    cleaned.append({"role": "user", "content": content})
-                elif isinstance(content, list):
-                    cleaned.append({"role": "user", "content": content})
-                continue
-
-            # Skip system messages (handled separately)
-            if role == "system":
-                continue
-
-            # Pass through user/assistant messages
-            if role in ("user", "assistant"):
-                cleaned.append({"role": role, "content": content})
-
-        # Ensure we don't have consecutive messages with same role
-        merged = []
-        for msg in cleaned:
-            if merged and merged[-1]["role"] == msg["role"]:
-                # Merge consecutive same-role messages
-                prev_content = merged[-1]["content"]
-                new_content = msg["content"]
-                if isinstance(prev_content, str) and isinstance(new_content, str):
-                    merged[-1]["content"] = prev_content + "\n" + new_content
-                else:
-                    # For complex content blocks, just keep the last one
-                    merged[-1] = msg
-            else:
-                merged.append(msg)
-
-        return merged if merged else [{"role": "user", "content": "Begin."}]
-
-    def _format_tools_for_api(self, tools: List[Dict]) -> List[Dict]:
-        """Convert internal tool definitions to Anthropic API format."""
+        
+        raise last_error
+    
+    def _format_tools(self, tools: List[Dict]) -> List[Dict]:
+        """Convert tool definitions to Anthropic API format."""
         formatted = []
         for tool in tools:
             formatted.append({
                 "name": tool["name"],
                 "description": tool.get("description", ""),
                 "input_schema": tool.get("input_schema", tool.get("parameters", {
-                    "type": "object",
-                    "properties": {},
+                    "type": "object", "properties": {},
                 })),
             })
         return formatted
-
-    def _parse_response(self, response) -> Dict[str, Any]:
-        """Parse Anthropic API response into internal format."""
-        content_blocks = []
-        for block in response.content:
-            if block.type == "text":
-                content_blocks.append({
-                    "type": "text",
-                    "text": block.text,
+    
+    def _parse_response(self, data: Dict) -> Dict[str, Any]:
+        """Parse raw JSON response from Claude API."""
+        content_blocks = data.get("content", [])
+        
+        text_parts = []
+        tool_calls = []
+        
+        for block in content_blocks:
+            if block.get("type") == "text":
+                text_parts.append(block.get("text", ""))
+            elif block.get("type") == "tool_use":
+                tool_calls.append({
+                    "name": block["name"],
+                    "id": block.get("id", str(uuid.uuid4())),
+                    "arguments": block.get("input", {}),
                 })
-            elif block.type == "tool_use":
-                content_blocks.append({
-                    "type": "tool_use",
-                    "id": block.id,
-                    "name": block.name,
-                    "input": block.input,
-                })
-
+        
+        usage = {}
+        if data.get("usage"):
+            usage = {
+                "input_tokens": data["usage"].get("input_tokens", 0),
+                "output_tokens": data["usage"].get("output_tokens", 0),
+            }
+        
         return {
             "content": content_blocks,
-            "text": "".join(
-                b["text"] for b in content_blocks if b["type"] == "text"
-            ),
-            "tool_calls": [
-                {
-                    "name": b["name"],
-                    "id": b["id"],
-                    "arguments": b["input"],
-                }
-                for b in content_blocks if b["type"] == "tool_use"
-            ],
-            "stop_reason": response.stop_reason,
-            "usage": {
-                "input_tokens": response.usage.input_tokens,
-                "output_tokens": response.usage.output_tokens,
-            },
+            "text": "\n".join(text_parts),
+            "tool_calls": tool_calls,
+            "stop_reason": data.get("stop_reason", "end_turn"),
+            "usage": usage,
         }
-
+    
+    def _estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        pricing = MODEL_PRICING.get(model, MODEL_PRICING["_default"])
+        return (input_tokens * pricing["input"] + output_tokens * pricing["output"]) / 1_000_000
+    
     @property
-    def total_tokens_used(self) -> Dict[str, int]:
+    def total_tokens(self) -> Dict[str, Any]:
         return {
             "input_tokens": self._total_input_tokens,
             "output_tokens": self._total_output_tokens,
             "total": self._total_input_tokens + self._total_output_tokens,
+            "estimated_cost": round(self._total_cost, 6),
         }
