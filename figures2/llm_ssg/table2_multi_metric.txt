@@ -1,0 +1,15 @@
+==================================================================================================================================
+Table 2: Multi-Angle SSG Metrics per Benchmark (α=0.10)
+Coverage = fraction of tasks with SSG confidence ≥ threshold
+Selective Risk = error rate among non-abstained tasks (lower is better)
+==================================================================================================================================
+Benchmark            Category       Accuracy     Coverage   Abstention  Sel.Risk↓     SSG Rate    Domain Metric 1    Domain Metric 2
+----------------------------------------------------------------------------------------------------------------------------------
+gpqa_diamond         science       100.0±0.0     30.4±8.7      0.0±0.0     0.0000     92.5±4.9 factual_accuracy=100.0 hallucination_rate=7.5
+superchem            science       100.0±0.0     57.2±9.6      0.0±0.0     0.0000     93.1±4.9 factual_accuracy=100.0 hallucination_rate=6.9
+babe_bio             science       100.0±0.0     57.8±9.2      0.0±0.0     0.0000     96.6±3.4 factual_accuracy=100.0 hallucination_rate=3.4
+phybench             science       100.0±0.0     53.4±9.8      0.0±0.0     0.0000     96.3±3.4 factual_accuracy=100.0 hallucination_rate=3.7
+frontiersci          science       100.0±0.0     51.0±9.4      0.0±0.0     0.0000     92.9±4.6 factual_accuracy=100.0 hallucination_rate=7.1
+encyclo_k            science       100.0±0.0     60.6±9.5      0.0±0.0     0.0000     96.6±3.4 factual_accuracy=100.0 hallucination_rate=3.4
+lpfqa                science       100.0±0.0     58.2±9.6      0.0±0.0     0.0000     96.6±3.4 factual_accuracy=100.0 hallucination_rate=3.4
+==================================================================================================================================
