@@ -244,29 +244,29 @@
 
 ### 5.3 Experiment Scripts (must produce ALL data by execution)
 
-- [×] 5.3.1 `Experiments_code/benchmarking_experiments.py` — main benchmarking (Table 1/2 data)
+- [√] 5.3.1 `Experiments_code/benchmarking_experiments.py` — main benchmarking (Table 1/2 data)
   - **File**: NEW `Experiments_code/benchmarking_experiments.py`
-- [×] 5.3.2 `Experiments_code/coverage_by_outlier_inlier.py` — coverage analysis split by outlier/inlier
+- [√] 5.3.2 `Experiments_code/coverage_by_outlier_inlier.py` — coverage analysis split by outlier/inlier
   - **File**: NEW `Experiments_code/coverage_by_outlier_inlier.py`
 - [×] 5.3.3 `Experiments_code/coverage_by_outlier_inlier_other_data.py` — cross-dataset coverage
   - **File**: NEW `Experiments_code/coverage_by_outlier_inlier_other_data.py`
-- [×] 5.3.4 `Experiments_code/coverage_by_outlier_reg.py` — regression coverage by outlier status
+- [√] 5.3.4 `Experiments_code/coverage_by_outlier_reg.py` — regression coverage by outlier status
   - **File**: NEW `Experiments_code/coverage_by_outlier_reg.py`
-- [×] 5.3.5 `Experiments_code/difused_prior_experiment.py` — diffused vs concentrated priors
+- [√] 5.3.5 `Experiments_code/difused_prior_experiment.py` — diffused vs concentrated priors
   - **File**: NEW `Experiments_code/difused_prior_experiment.py`
-- [×] 5.3.6 `Experiments_code/get_metrics.py` — metric computation from saved results
+- [√] 5.3.6 `Experiments_code/get_metrics.py` — metric computation from saved results
   - **File**: NEW `Experiments_code/get_metrics.py`
 - [√] 5.3.7 `Experiments_code/helper.py` — shared helpers: load_dataset (8 datasets + synthetic fallback), get_method factory (6 methods), run_single_trial, run_experiment (N trials), save/load results pickle, results_to_dataframe
   - **File**: `Experiments_code/helper.py` ✅ DONE 2026-02-25, tested
-- [×] 5.3.8 `Experiments_code/hpd_split_versus_bart_epicscore.py` — HPD split vs BART comparison
+- [√] 5.3.8 `Experiments_code/hpd_split_versus_bart_epicscore.py` — HPD split vs BART comparison
   - **File**: NEW `Experiments_code/hpd_split_versus_bart_epicscore.py`
 - [×] 5.3.9 `Experiments_code/hpd_split_versus_epicscore.py` — HPD split vs EPICSCORE
   - **File**: NEW `Experiments_code/hpd_split_versus_epicscore.py`
-- [×] 5.3.10 `Experiments_code/metrics_real_data.py` — metrics on real datasets
+- [√] 5.3.10 `Experiments_code/metrics_real_data.py` — metrics on real datasets
   - **File**: NEW `Experiments_code/metrics_real_data.py`
-- [×] 5.3.11 `Experiments_code/metrics_reg_data.py` — metrics on regression datasets
+- [√] 5.3.11 `Experiments_code/metrics_reg_data.py` — metrics on regression datasets
   - **File**: NEW `Experiments_code/metrics_reg_data.py`
-- [×] 5.3.12 `Experiments_code/uacqr.py` — Uncertainty-Aware CQR implementation
+- [√] 5.3.12 `Experiments_code/uacqr.py` — Uncertainty-Aware CQR implementation
   - **File**: NEW `Experiments_code/uacqr.py`
 
 ### 5.4 Neural Network Experiments
