@@ -11,13 +11,14 @@
 
 - [√] 0.1 GitHub repo initialized (`github.com/dylanyunlon/code_ssg`)
 - [√] 0.2 Project directory structure: `core/`, `tools/`, `evaluations/`, `scripts/`, `ui/`, `verification/`, `configs/`
-- [×] 0.3 `requirements.txt` is EMPTY — must add all dependencies
-  - **Action**: populate `requirements.txt` with `numpy`, `matplotlib`, `scipy`, `scikit-learn`, `httpx`, `anthropic`, `pandas`, `tqdm`, `pyyaml`
-  - **File**: `requirements.txt`
-- [×] 0.4 `.env.example` with required env vars (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENAI_API_BASE`)
-  - **File**: NEW `/.env.example`
-- [×] 0.5 `configs/default_config.yaml` is stub — needs real parameters for experiment runs
-  - **File**: `configs/default_config.yaml`
+- [√] 0.3 `requirements.txt` populated with all dependencies (numpy, scipy, scikit-learn, pandas, matplotlib, seaborn, httpx, tqdm, pyyaml, etc.)
+  - **File**: `requirements.txt` ✅ DONE 2026-02-25
+- [√] 0.4 `.env.example` with required env vars (ANTHROPIC_API_KEY, OPENAI_API_KEY, SSG_MODEL, CUDA_VISIBLE_DEVICES, etc.)
+  - **File**: `.env.example` ✅ DONE 2026-02-25
+- [√] 0.5 `configs/default_config.yaml` updated with real EPICSCORE experiment parameters (datasets, methods, alpha_grid, NN config, figure config)
+  - **File**: `configs/default_config.yaml` ✅ DONE 2026-02-25
+- [√] 0.6 `setup_env.sh` — Isolated conda environment setup script (following `env_example_like_llm4walking.sh` pattern). Supports: setup, install, run_exp, run_figures, run_all, test, clean
+  - **File**: `setup_env.sh` ✅ DONE 2026-02-25
 
 ---
 
@@ -230,17 +231,16 @@
 
 ### 5.2 EPICSCORE Core Library
 
-- [×] 5.2.1 `Epistemic_CP/epistemic_cp.py` — core epistemic conformal prediction
-  - **Action**: implement split conformal + epistemic uncertainty estimation
-  - **File**: NEW `Epistemic_CP/epistemic_cp.py`
-- [×] 5.2.2 `Epistemic_CP/epistemic_models.py` — models for epistemic uncertainty (e.g., ensemble, MC dropout)
-  - **File**: NEW `Epistemic_CP/epistemic_models.py`
-- [×] 5.2.3 `Epistemic_CP/scores.py` — nonconformity score functions
-  - **File**: NEW `Epistemic_CP/scores.py`
-- [×] 5.2.4 `Epistemic_CP/utils.py` — utility functions
-  - **File**: NEW `Epistemic_CP/utils.py`
-- [×] 5.2.5 `Epistemic_CP/__init__.py` — package init
-  - **File**: NEW `Epistemic_CP/__init__.py`
+- [√] 5.2.1 `Epistemic_CP/epistemic_cp.py` — core EpistemicConformalPredictor (fit→calibrate→predict pipeline, + SplitConformalPredictor and CQRPredictor baselines)
+  - **File**: `Epistemic_CP/epistemic_cp.py` ✅ DONE 2026-02-25, tested
+- [√] 5.2.2 `Epistemic_CP/epistemic_models.py` — EnsembleModel (bootstrap ensemble), MCDropoutModel (feature dropout simulation), QuantileForestModel (tree disagreement), all implementing EpistemicModel ABC
+  - **File**: `Epistemic_CP/epistemic_models.py` ✅ DONE 2026-02-25, tested
+- [√] 5.2.3 `Epistemic_CP/scores.py` — nonconformity scores: residual, normalized, quantile, epistemic (EPICSCORE core); ScoreFunction wrapper with registry
+  - **File**: `Epistemic_CP/scores.py` ✅ DONE 2026-02-25, tested
+- [√] 5.2.4 `Epistemic_CP/utils.py` — split_data, coverage_rate, average_interval_length, adaptive_interval_set_length (AISL), partial_correlation (PCOR), interval_width_ratio, conditional_coverage, outlier_inlier_split
+  - **File**: `Epistemic_CP/utils.py` ✅ DONE 2026-02-25, tested
+- [√] 5.2.5 `Epistemic_CP/__init__.py` — package init with full public API exports
+  - **File**: `Epistemic_CP/__init__.py` ✅ DONE 2026-02-25, tested
 
 ### 5.3 Experiment Scripts (must produce ALL data by execution)
 
@@ -256,8 +256,8 @@
   - **File**: NEW `Experiments_code/difused_prior_experiment.py`
 - [×] 5.3.6 `Experiments_code/get_metrics.py` — metric computation from saved results
   - **File**: NEW `Experiments_code/get_metrics.py`
-- [×] 5.3.7 `Experiments_code/helper.py` — shared helper functions
-  - **File**: NEW `Experiments_code/helper.py`
+- [√] 5.3.7 `Experiments_code/helper.py` — shared helpers: load_dataset (8 datasets + synthetic fallback), get_method factory (6 methods), run_single_trial, run_experiment (N trials), save/load results pickle, results_to_dataframe
+  - **File**: `Experiments_code/helper.py` ✅ DONE 2026-02-25, tested
 - [×] 5.3.8 `Experiments_code/hpd_split_versus_bart_epicscore.py` — HPD split vs BART comparison
   - **File**: NEW `Experiments_code/hpd_split_versus_bart_epicscore.py`
 - [×] 5.3.9 `Experiments_code/hpd_split_versus_epicscore.py` — HPD split vs EPICSCORE
@@ -381,16 +381,18 @@
 
 | Category | Done (√) | Todo (×) | Total |
 |----------|----------|----------|-------|
-| Phase 0: Infrastructure | 2 | 3 | 5 |
+| Phase 0: Infrastructure | 6 | 0 | 6 |
 | Phase 1: Core Agent Loop | 19 | 14 | 33 |
 | Phase 2: Tools | 13 | 3 | 16 |
 | Phase 3: Verification | 3 | 2 | 5 |
 | Phase 4: Evaluations | 8 | 7 | 15 |
-| Phase 5: EPICSCORE Experiments | 0 | 33 | 33 |
+| Phase 5: EPICSCORE Experiments | 7 | 26 | 33 |
 | Phase 6: Integration | 0 | 4 | 4 |
 | Phase 7: Testing | 1 | 4 | 5 |
 | Phase 8: Documentation | 0 | 3 | 3 |
-| **Total** | **46** | **73** | **119** |
+| **Total** | **57** | **63** | **120** |
+
+> **Progress**: 57/120 (48%) — up from 46/119 (39%) after completing 10 tasks + 1 new task (setup_env.sh)
 
 ---
 

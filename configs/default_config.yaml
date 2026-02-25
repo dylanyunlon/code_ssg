@@ -1,4 +1,6 @@
+# ===========================================
 # Code-SSG Default Configuration
+# ===========================================
 
 agent:
   model: "claude-sonnet-4-5-20250929"
@@ -7,10 +9,11 @@ agent:
   context_compression_threshold: 0.92
 
 ssg:
-  mode: "hybrid"  # code_exec, llm_judge, hybrid
+  mode: "hybrid"  # code_exec, llm_judge, hybrid, trace
   exec_timeout: 10
   llm_judge_model: "claude-sonnet-4-5-20250929"
 
+# --- Agentic loop evaluation benchmarks ---
 evaluation:
   benchmarks:
     - mbpp
@@ -26,7 +29,69 @@ conformal:
   sampling_budget: 25
   alpha: 0.1
 
+# --- EPICSCORE Experiment Configuration (Phase 5) ---
+epicscore:
+  seed: 42
+  n_trials: 100           # repeated trials per experiment
+  test_ratio: 0.2         # fraction held out for testing
+  cal_ratio: 0.2          # fraction for conformal calibration
+  alpha: 0.1              # target miscoverage rate
+  alpha_grid: [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+
+  datasets:
+    regression:
+      - name: "bike"
+        file: "data/raw/bike/bike_train.csv"
+        target: "cnt"
+      - name: "homes"
+        file: "data/raw/homes/kc_house_data.csv"
+        target: "price"
+      - name: "star"
+        file: "data/raw/star/STAR.csv"
+        target: "g4math"
+      - name: "meps"
+        file: "data/raw/meps/meps_19_reg.csv"
+        target: "UTILIZATION_reg"
+    wave_energy:
+      - name: "WEC_Perth_49"
+        file: "data/raw/WEC/WEC_Perth_49.csv"
+      - name: "WEC_Perth_100"
+        file: "data/raw/WEC/WEC_Perth_100.csv"
+      - name: "WEC_Sydney_49"
+        file: "data/raw/WEC/WEC_Sydney_49.csv"
+      - name: "WEC_Sydney_100"
+        file: "data/raw/WEC/WEC_Sydney_100.csv"
+
+  methods:
+    - "EPICSCORE"
+    - "SplitConformal"
+    - "CQR"
+    - "CHR"
+    - "DistSplit"
+    - "CD-split"
+
+  nn_experiments:
+    datasets:
+      - "airfoil"
+      - "bike"
+      - "cycle"
+      - "electric"
+      - "protein"
+      - "star"
+      - "winered"
+      - "winewhite"
+    model: "MLP"
+    hidden_dims: [64, 64]
+    epochs: 200
+    lr: 0.001
+    batch_size: 64
+
+# --- Figure generation ---
 figures:
   output_dir: "figures"
   dpi: 300
   style: "publication"
+  # Each curve gets a shaded confidence band around it
+  confidence_band_alpha: 0.2   # transparency of shaded region
+  line_width: 2.0
+  marker_size: 6
